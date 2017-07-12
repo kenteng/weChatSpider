@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd"
+       default-lazy-init="true">
+
+    <bean name="mongoClient" class="com.ifeng.weChatSpider.Mongo.MongoCli" scope="prototype" lazy-init="true">
+        <constructor-arg index="0" name="serverAddresses">
+            <list>
+                <ref bean="add"/>
+            </list>
+        </constructor-arg>
+        <constructor-arg index="1" name="credentials">
+            <list>
+                <ref bean="credential"/>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean name="add" class="com.mongodb.ServerAddress" lazy-init="true">
+        <constructor-arg index="0" name="host" value="${mongo.ip}"/>
+        <constructor-arg index="1" name="port" value="27017"/>
+
+    </bean>
+
+    <bean name="credential" class="com.mongodb.MongoCredential" factory-method="createCredential">
+        <constructor-arg value="${mongo.username}"/>
+        <constructor-arg value="${mongo.database}"/>
+        <constructor-arg value="${mongo.password}"/>
+    </bean>
+
+    <bean name="WeChatMongoClient" class="com.ifeng.weChatSpider.Mongo.MongoCli" scope="prototype" lazy-init="true">
+        <constructor-arg index="0" name="serverAddresses">
+            <list>
+                <ref bean="WeChatAdd"/>
+            </list>
+        </constructor-arg>
+        <constructor-arg index="1" name="credentials">
+            <list>
+                <ref bean="WeChatCredential"/>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean name="WeChatAdd" class="com.mongodb.ServerAddress" lazy-init="true">
+        <constructor-arg index="0" name="host" value="${WeChatmongo.ip}"/>
+        <constructor-arg index="1" name="port" value="27017"/>
+
+    </bean>
+
+
+    <bean name="WeChatCredential" class="com.mongodb.MongoCredential" factory-method="createCredential">
+        <constructor-arg value="${WeChatmongo.username}"/>
+        <constructor-arg value="${WeChatmongo.database}"/>
+        <constructor-arg value="${WeChatmongo.password}"/>
+    </bean>
+
+    <!--<bean name="add1" class="com.mongodb.ServerAddress" lazy-init="true">-->
+    <!--<constructor-arg index="0" name="host" value="10.50.16.18"/>-->
+    <!--<constructor-arg index="1" name="port" value="27021"/>-->
+    <!--</bean>-->
+    <!--<bean name="add2" class="com.mongodb.ServerAddress" lazy-init="true">-->
+    <!--<constructor-arg index="0" name="host" value="10.50.16.21"/>-->
+    <!--<constructor-arg index="1" name="port" value="27021"/>-->
+    <!--</bean>-->
+    <!--<bean name="add3" class="com.mongodb.ServerAddress" lazy-init="true">-->
+    <!--<constructor-arg index="0" name="host" value="10.50.16.35"/>-->
+    <!--<constructor-arg index="1" name="port" value="27021"/>-->
+    <!--</bean>-->
+    <!--<bean name="add4" class="com.mongodb.ServerAddress" lazy-init="true">-->
+    <!--<constructor-arg index="0" name="host" value="10.50.16.36"/>-->
+    <!--<constructor-arg index="1" name="port" value="27021"/>-->
+    <!--</bean>-->
+
+</beans>

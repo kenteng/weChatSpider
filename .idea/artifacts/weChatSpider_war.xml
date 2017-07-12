@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="war" build-on-make="true" name="weChatSpider:war">
+    <output-path>$PROJECT_DIR$/target</output-path>
+    <root id="archive" name="weChatSpider.war">
+      <element id="artifact" artifact-name="weChatSpider:war exploded" />
+    </root>
+  </artifact>
+</component>
