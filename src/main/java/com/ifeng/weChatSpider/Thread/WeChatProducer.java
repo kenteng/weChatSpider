@@ -17,6 +17,8 @@ public class WeChatProducer implements Runnable {
 
     private WeChatService weChatService;
 
+    private static int totalSize = 200;
+
     BlockingQueue<WeChat> queue;
 
     public WeChatProducer(BlockingQueue<WeChat> queue, WeChatService weChatService) {
@@ -31,11 +33,11 @@ public class WeChatProducer implements Runnable {
                 if (queue.size() <= 0) {
                     List<WeChat> weChatList = weChatService.selectUpdateList();
                     int size = weChatList.size();
-                    if (size < 100) {
-                        weChatList.addAll(weChatService.selectPubpiderList(100 - size));
+                    if (size < totalSize) {
+                        weChatList.addAll(weChatService.selectPubpiderList(totalSize - size));
                         size = weChatList.size();
-                        if(size < 100) {
-                            weChatList.addAll(weChatService.selectSpiderList(100 - size));
+                        if(size < totalSize) {
+                            weChatList.addAll(weChatService.selectSpiderList(totalSize - size));
                         }
                     }
                     queue.addAll(weChatList);
