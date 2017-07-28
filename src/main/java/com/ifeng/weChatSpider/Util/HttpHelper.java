@@ -1,8 +1,6 @@
 package com.ifeng.weChatSpider.Util;
 
-import java.io.BufferedInputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.ExecutorService;
@@ -95,8 +93,8 @@ public class HttpHelper {
 			boolean isPost,
 			String encoding
 			){
-		
-		
+
+
 		HttpURLConnection.setFollowRedirects(true);
 		HttpURLConnection connection = null;
 		InputStream inputStream = null;
@@ -158,13 +156,14 @@ public class HttpHelper {
 					bufferedInputStream.close();
 				if (inputStream != null)
 					inputStream.close();
-				connection.disconnect(); 
-				
+				connection.disconnect();
+
 			} catch (Exception e2) {
 				e2.printStackTrace();
 			}
 		}
-		
+
 		return new HttpReturnData(result, attr, encoding);
 	}
+
 }

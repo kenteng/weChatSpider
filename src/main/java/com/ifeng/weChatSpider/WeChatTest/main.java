@@ -167,7 +167,6 @@ public class main {
         List<MongoCredential> credentials = new ArrayList<MongoCredential>();
         MongoCredential mongoCredential = MongoCredential.createCredential("spider", "spider", "aT4QTEThwkfDZWAEJb4B".toCharArray());
         credentials.add(mongoCredential);
-        return new MongoCli(serverAddresses, credentials);
+        return new MongoCli(serverAddresses,credentials);
     }
-
 }

@@ -44,13 +44,11 @@ public abstract class Log {
         HttpAttr attr = HttpAttr.getDefaultInstance();
         String response = "-1";
         try {
-            response = HttpHelper.postData("http://pmop.staff.ifeng.com/Cmpp/runtime/interface_54.jhtml", attr, postData, "utf-8");
+                response = HttpHelper.postData("http://pmop.staff.ifeng.com/Cmpp/runtime/interface_54.jhtml", attr, postData, "utf-8");
         } catch (Exception e) {
             e.printStackTrace();
         }
         return response;
     }
-
-
 }
 

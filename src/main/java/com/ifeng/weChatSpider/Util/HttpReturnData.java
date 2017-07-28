@@ -32,12 +32,12 @@ public class HttpReturnData {
 	}
 
 	
-	public HttpReturnData(String data, HttpAttr attr, String encoding) {  
-        
-		this.data = data;  
-        this.updatedAttr = attr;  
-        this.encoding = encoding;  
-    } 
+	public HttpReturnData(String data, HttpAttr attr, String encoding) {
+
+			this.data = data;
+			this.updatedAttr = attr;
+			this.encoding = encoding;
+		}
 	
 	public byte[] getReturnDataBytes() {
 		try {
