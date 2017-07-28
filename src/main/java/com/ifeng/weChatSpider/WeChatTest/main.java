@@ -32,13 +32,14 @@ import java.util.*;
 public class main {
     private static final long FIVEDAYMIL = 5 * 24 * 3600 * 1000;
     public static List<String> status = Arrays.asList(new String[]{"-1", "9"});
-    public static String url = "https://mp.weixin.qq.com/cgi-bin/appmsg?token=1147500981&lang=zh_CN&f=json&ajax=1&random=0.0932841953962531&action=list_ex&begin=0&count=5&query=&fakeid=%s&type=9";
+    public static String url = "https://mp.weixin.qq.com/cgi-bin/appmsg?token=1039563801&lang=zh_CN&f=json&ajax=1&random=0.950075168245488&action=list_ex&begin=0&count=5&query=&fakeid=%s&type=9";
 
     public static void main(String[] args) throws Exception {
         getWechat();
     }
 
     public static void getWechat() throws Exception {
+        int failTime = 0;
         int id = 0;
         int totalCount = 0;
         MongoCli mongoCli = getWeChatMongoCli();
@@ -62,53 +63,57 @@ public class main {
             for (WeChat weixinInfo : weixinInfos) {
                 String reslut = downloader(String.format(url, URLEncoder.encode(weixinInfo.getBiz(), "UTF-8")));
                 JSONObject jsonObject = JSONObject.parseObject(reslut);
-                try {
-                    JSONArray list = jsonObject.getJSONArray("app_msg_list");
-                    List<ArticleList> articleLists = new ArrayList<>();
-                    for (int i = 0; i < list.size(); i++) {
-                        JSONObject ar = list.getJSONObject(i);
-                        ArticleList article = new ArticleList();
-                        article.setAccount(weixinInfo.getAccount());
-                        article.setUrl(ar.getString("link"));
-                        article.setCreateTime(DateUtil.now());
-                        article.setCreate_Time(DateUtil.formatDateTime(new Date(ar.getLong("update_time") * 1000)));
-                        article.setCateid(weixinInfo.getCateId());
-                        article.setCatename(weixinInfo.getCatename());
-                        article.setCover(ar.getString("cover"));
-                        article.setTitle(ar.getString("title").replaceAll("&quot;", "\"")
-                                .replaceAll("&amp;", "&")
-                                .replaceAll("&yen;", "¥")
-                                .replaceAll("&nbsp;", " ")
-                                .replaceAll("\\u00A0", " ").trim());
-                        article.setStatus(0);
-                        article.setFrom("official");
-                        article.setWechat_name(weixinInfo.getWeChatName());
-                        if (!"".equals(article.getTitle()) && !"".equals(article.getUrl()) && System.currentTimeMillis() - (ar.getLong("update_time") * 1000) <= FIVEDAYMIL) {
-                            articleLists.add(article);
-                        }
+                if (jsonObject.containsKey("base_resp")) {
+                    if (!jsonObject.getJSONObject("base_resp").getString("err_msg").equals("ok")) {
+                        System.out.println("--------Cookie已过期---------" + DateUtil.now());
+                        return;
                     }
-                    int count = 0;
-                    for (ArticleList article : articleLists) {
-                        MongoSelect selectATemp = new MongoSelect();
-                        selectATemp.where("title", article.getTitle())
-                                .where("cateid", article.getCateid());
-                        Article temp = articleCli.selectOne(selectATemp, Article.class);
-                        if (temp == null) {
-                            count++;
-                            Log.info("入库:" + new Gson().toJson(article));
-                            weChatMongoCli.insert(article);
-                        }
-                    }
-                    Map<String, Object> map = new HashedMap();
-                    map.put("spider_date", DateUtil.now());//更新最新抓取时间
-                    map.put("lastNum", count);//更新本次抓取是否有入库文章
-                    Where where = new Where("biz", weixinInfo.getBiz());
-                    mongoCli.update(map, where);
-                    System.out.println((++id) + "--------账号：" + weixinInfo.getAccount() + " 入库" + count + "篇文章，共抓取" + articleLists.size() + "篇---------" + DateUtil.now());
-//                    Thread.sleep(1000);
-                } catch (Exception e) {
-                    System.out.println((++id) + "--------账号：" + weixinInfo.getAccount() + " 失败" + DateUtil.now());
+                } else {
+                    continue;
                 }
+                JSONArray list = jsonObject.getJSONArray("app_msg_list");
+                List<ArticleList> articleLists = new ArrayList<>();
+                for (int i = 0; i < list.size(); i++) {
+                    JSONObject ar = list.getJSONObject(i);
+                    ArticleList article = new ArticleList();
+                    article.setAccount(weixinInfo.getAccount());
+                    article.setUrl(ar.getString("link"));
+                    article.setCreateTime(DateUtil.now());
+                    article.setCreate_Time(DateUtil.formatDateTime(new Date(ar.getLong("update_time") * 1000)));
+                    article.setCateid(weixinInfo.getCateId());
+                    article.setCatename(weixinInfo.getCatename());
+                    article.setCover(ar.getString("cover"));
+                    article.setTitle(ar.getString("title").replaceAll("&quot;", "\"")
+                            .replaceAll("&amp;", "&")
+                            .replaceAll("&yen;", "¥")
+                            .replaceAll("&nbsp;", " ")
+                            .replaceAll("\\u00A0", " ").trim());
+                    article.setStatus(0);
+                    article.setFrom("official");
+                    article.setWechat_name(weixinInfo.getWeChatName());
+                    if (!"".equals(article.getTitle()) && !"".equals(article.getUrl()) && System.currentTimeMillis() - (ar.getLong("update_time") * 1000) <= FIVEDAYMIL) {
+                        articleLists.add(article);
+                    }
+                }
+                int count = 0;
+                for (ArticleList article : articleLists) {
+                    MongoSelect selectATemp = new MongoSelect();
+                    selectATemp.where("title", article.getTitle())
+                            .where("cateid", article.getCateid());
+                    Article temp = articleCli.selectOne(selectATemp, Article.class);
+                    if (temp == null) {
+                        count++;
+                        Log.info("入库:" + new Gson().toJson(article));
+                        weChatMongoCli.insert(article);
+                    }
+                }
+                Map<String, Object> map = new HashedMap();
+                map.put("spider_date", DateUtil.now());//更新最新抓取时间
+                map.put("lastNum", count);//更新本次抓取是否有入库文章
+                Where where = new Where("biz", weixinInfo.getBiz());
+                mongoCli.update(map, where);
+                System.out.println((++id) + "--------账号：" + weixinInfo.getAccount() + " 入库" + count + "篇文章，共抓取" + articleLists.size() + "篇---------" + DateUtil.now());
+//                    Thread.sleep(1000);
             }
             id = 0;
             System.out.println("--------第" + (++totalCount) + "轮结束---------" + DateUtil.now());
@@ -135,7 +140,7 @@ public class main {
             httpGet.addHeader("accept-language", "zh-CN,zh;q=0.8");
             httpGet.addHeader("cache-control", "no-cache");
             httpGet.addHeader("connection", "keep-alive");
-            httpGet.addHeader("cookie", "noticeLoginFlag=1; remember_acct=Lemon1_bear2; RK=qfFDKVaaYD; cuid=2698805126; pgv_pvi=8006946816; pgv_si=s3259430912; cert=NmMcPPXvIXtLoP0NFFycNUKeALIEnl6J; pgv_info=ssid=s9627254497; pgv_pvid=9048190112; noticeLoginFlag=1; remember_acct=Lemon1_bear2; ptisp=cnc; ptcz=aafdf806228ea41ca6bef22902db79768b69194ad02ac8d49d2785c71691de5c; pt2gguin=o0624791977; uin=o0624791977; skey=@iIqk1387c; uuid=cb481fba70bb76c50aa4d408a569f086; ticket=19727fb5d81f477cf1bf16c671c20c439df3cfbe; ticket_id=gh_fab4a86ccb47; data_bizuin=3011401038; data_ticket=1YOb/8/sZbdBGGjLEjzHx+jwzzoUOOZ69POE7H6vbmAyxXk7tH4KMQaLF2QbU//o; ua_id=tuV4ynNzaptEWB7CAAAAAHcdmdTK1_rSlqw9aenryhc=; xid=a0051147471d48489df7d7859fad89fb; openid2ticket_oTlV-s6ivfTOfZ32jfYi0r53m0zA=PJsjA8KYzsgEAWN3gD8UpQE4ai27R/1/JatwUVmq38U=; slave_user=gh_fab4a86ccb47; slave_sid=Y3NJbGdfbjVaS2Z1V3hhQzBwU0tudFFXakx4NkxFbk1XSXdxTFRKMG0wblo1Q2xrdk5JNXBCM2xqQlNyQ2l4MkkwSlF2Z05fMFNsY25uRTkyel9wZkF3WGpLSEN1R1I5R2JQZzkxY3IzS09TRFVkMTZrSER2eXJjUjBKU2xUYnFkZE00Yno3dTZsVHdHd0xl; bizuin=3092580982");
+            httpGet.addHeader("cookie", "noticeLoginFlag=1; remember_acct=Lemon1_bear2; RK=qfFDKVaaYD; cuid=2698805126; pgv_pvi=8006946816; pgv_si=s3259430912; cert=NmMcPPXvIXtLoP0NFFycNUKeALIEnl6J; pgv_info=ssid=s9627254497; pgv_pvid=9048190112; ptisp=cnc; ptcz=aafdf806228ea41ca6bef22902db79768b69194ad02ac8d49d2785c71691de5c; pt2gguin=o0624791977; uin=o0624791977; skey=@cU41crnvY; uuid=25c8cdd9ec1d43ea53d98f4ee01e9f86; ticket=fb287aff56ff16b2ede635fda04b95613be2468c; ticket_id=gh_fab4a86ccb47; noticeLoginFlag=1; remember_acct=Lemon1_bear2; data_bizuin=3011401038; data_ticket=PYUVLaKhQmp5x6u1qNN88Rf1ap+YIknGcpfrQ1FQ5yEMoRssvE+PQZyCNexZsFHj; ua_id=tuV4ynNzaptEWB7CAAAAAHcdmdTK1_rSlqw9aenryhc=; xid=428fabbedaab2dd1b96efbdadd5f07fc; openid2ticket_oTlV-s6ivfTOfZ32jfYi0r53m0zA=9OhcxFXDVJn4rVWLQjHriaRnaYLHYzz1p/7Sn0IsSx8=; slave_user=gh_fab4a86ccb47; slave_sid=VzVVdGhvc0tzQmpCMzRaRkhUYmdQbTBBaVViWEh6WlczQll3djltQ2dJRXUzX0JmanYzUUNWS0dvb0NHcWxWTmphM3lJZjQ5dmo4SlV0QWE1V21SYUpPRXR6WXVTUmZfZTlvZzh3MWh6SXZSdmlBOFFWNTREZWVVMUxOa0JHcDRvWjVUUXNESGZqU2lTcld0; bizuin=3092580982");
             httpGet.addHeader("host", "mp.weixin.qq.com");
             httpGet.addHeader("pragma", "no-cache");
             httpGet.addHeader("user-agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.104 Safari/537.36 Core/1.53.3176.400 QQBrowser/9.6.11520.400");
