@@ -38,7 +38,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * Created by suwx on 2017/7/25.
+ * Created by xufh on 2017/7/25.
  */
 public class Login {
 
@@ -60,7 +60,6 @@ public class Login {
     WebDriver webDriver = new ChromeDriver();
     WebDriver newDriver = null;
     String token = "";
-
 
     @Test
     public void getWechat() throws Exception {
@@ -86,24 +85,24 @@ public class Login {
                 .orderBy("spider_date", OrderByDirection.ASC);
         //模拟登陆，获取web中的token和cookie
 
-        while(cookie == null || "".equals(cookie)){
-            cookie = analogLogin();
+        while(cookie == null || "".equals(cookie) || token==null || "".equals(token)){
+            cookie = analogLogin();   //获取cookie 和 token
         }
 
-        while(token == null || "".equals(token)){
-            analogLogin();
-        }
         url = "https://mp.weixin.qq.com/cgi-bin/appmsg?token=" + token + "&lang=zh_CN&f=json&ajax=1&random=0.0932841953962531&action=list_ex&begin=0&count=5&query=&fakeid=%s&type=9";
 
         while (true) {
             List<WeChat> weixinInfos = mongoCli.selectList(select, WeChat.class);
             for (WeChat weixinInfo : weixinInfos) {
+                //System.out.println("公众号名" + weixinInfo.getAccount());
+                Log.info("当前公众号：" + weixinInfo.getAccount());
                 String reslut = null;
                 try {
                     reslut = downloader(String.format(url, URLEncoder.encode(weixinInfo.getBiz(), "UTF-8")), cookie);
                 } catch (Exception e){
                     e.printStackTrace();
                     Log.error("" ,"----Download Exception:" + e +"-------");
+                    Log.sendMail("xufh@ifeng.com","Error","Error Occurred"+e);
                 }
                 if(reslut == null){
                     continue;
@@ -113,9 +112,12 @@ public class Login {
                 String ret = jsonObject.getJSONObject("base_resp").getString("ret");
                 String err_msg = jsonObject.getJSONObject("base_resp").getString("err_msg");
                 if("200003".equals(ret) || "invalid session".equals(err_msg)){
+                    System.out.println("200003失效======================");
+                    Log.info("200003失效===============");
                     //失效，重新登录
-                    //getWechat();
-                    break;
+                    cookie = analogLogin();   //获取cookie 和 token
+                    url = "https://mp.weixin.qq.com/cgi-bin/appmsg?token=" + token + "&lang=zh_CN&f=json&ajax=1&random=0.0932841953962531&action=list_ex&begin=0&count=5&query=&fakeid=%s&type=9";
+                    //continue;
                 }else{
                     try {
                         JSONArray list = jsonObject.getJSONArray("app_msg_list");
@@ -177,27 +179,32 @@ public class Login {
      * @return 模拟登录返回token和cookie值
      * */
     public String analogLogin() throws Exception{
-        String erCodeUrl = "";
-        String content = "";
-        erCodeUrl = getErCode();//已经做了为空校验，再次无需再次校验
-        content = erCodeUrl.replaceAll("&","/&");
-        System.out.println(content);
-       // Log.sendMail("suwx@ifeng.com", "微信公众号二维码扫描" + DateUtil.formatDateTime(TIMETAP), content);
+        getErCode(0);
         //是否登录
+        long time_begin = System.currentTimeMillis();
         while(true){
-            String currUrl = webDriver.getCurrentUrl();
-            currUrl = currUrl.replaceAll("%40","@");
-            System.out.println(currUrl);
-            if(!Login.LOGIN_URL.equals(currUrl) && !Login.HOST.equals(currUrl)){
-                System.out.println("登陆成功");
-                //获取到cookie和token
-                //getCookieAndToken();
-                Log.info("登录成功");
-                break;
+            long time_end = System.currentTimeMillis();
+            //10分钟
+            if(time_end - time_begin <= 10 * 60 * 1000){
+                String currUrl = webDriver.getCurrentUrl();
+                currUrl = currUrl.replaceAll("%40","@");
+                System.out.println(currUrl);
+                if(!Login.LOGIN_URL.equals(currUrl) && !Login.HOST.equals(currUrl)){
+                    System.out.println("登陆成功");
+                    //获取到cookie和token
+                    //getCookieAndToken();
+                    Log.info("登录成功");
+                    break;
+                }else{
+                    System.out.println("登陆失败");
+                    Log.info("登录失败");
+                    Thread.sleep(2000);
+                }
             }else{
-                System.out.println("登陆失败");
-                Log.info("登录失败");
-                Thread.sleep(2000);
+                //大于60秒二维码失效，重新获取
+                System.out.println("二维码过期重新扫描");
+                getErCode(1);
+                time_begin = System.currentTimeMillis();
             }
         }
         //获取主页当前链接
@@ -212,16 +219,12 @@ public class Login {
             //获取当前页面的cookie
             return getCookieAndToken();
         }
-
     }
-
     /**
      * 获取登录二维码并发送邮件
      *return 二维码地址
      */
-    private String getErCode(){
-        String erCodeUrl = "";
-        //必须在这两个后面
+    private void getErCode(int flag){
         try {
             webDriver.get(Login.HOST);
             WebElement account = webDriver.findElement(By.xpath("//*[@id=\'account\']"));
@@ -250,22 +253,21 @@ public class Login {
             Date date=new Date();
             String year=new SimpleDateFormat("yyyy").format(date);
             String imgUrl=year+"\\ercode\\"+UUID.randomUUID()+".jpg";
-            ImageIO.write(image,"jpg",new File("X:\\pmop\\storage_main\\"+imgUrl)); //保存到本地
+            ImageIO.write(image,"jpg",new File("X:\\pmop\\storage_main\\"+imgUrl)); //本地化
 
             String sendUrl=getFormatUrl(imgUrl);
             System.out.println(sendUrl);
-            Log.sendMail("xufh@ifeng.com", "微信公众号二维码扫描" + DateUtil.formatDateTime(TIMETAP), sendUrl);  //发送邮件
+            if(flag == 0){
+                Log.sendMail("xufh@ifeng.com", "微信公众号二维码扫描" + DateUtil.formatDateTime(TIMETAP), sendUrl);  //发送邮件
+            }else{
+                Log.sendMail("xufh@ifeng.com", "微信公众号二维码过期扫描" + DateUtil.formatDateTime(TIMETAP), sendUrl);  //发送邮件
+            }
+
         }catch (Exception e){
             e.printStackTrace();
-        }finally {
-            if(erCodeUrl == null && "".equals(erCodeUrl)){
-                webDriver.close();
-                webDriver.quit();
-            }
+            Log.sendMail("xufh@ifeng.com", "getErCode",e.toString());
         }
-        return erCodeUrl;
     }
-
     /**
      *获取二维码截图
      *
@@ -288,23 +290,21 @@ public class Login {
         return ((TakesScreenshot) augmentedDriver).getScreenshotAs(OutputType.BYTES);
     }
 
-
     public String getFormatUrl(String url){
         url=url.replace("\\","/");
         HttpAttr attr=HttpAttr.getDefaultInstance();
         return  HttpHelper.getData("http://pmop.staff.ifeng.com/Cmpp/runtime/interface_405.jhtml?locationUrl=http://pmopsource.staff.ifeng.com/source2/pmop/storage_main/"+url,attr,"utf-8");
     }
-
     /**
      *定时滚动滚动条保持在线状态
      *
      */
     @Scheduled(cron = "0 0/10 * * * ?")
     private void keepLive(){
-        ((JavascriptExecutor)webDriver).executeScript("window.scrollTo(10,10)");
-        ((JavascriptExecutor)webDriver).executeScript("window.scrollTo(-10,-10)");
+        System.out.println("*****定时触发浏览器*******");
+        ((JavascriptExecutor)webDriver).executeScript("window.scrollTo(100,100)");
+        ((JavascriptExecutor)webDriver).executeScript("window.scrollTo(-100,-100)");
     }
-
     /**
      * 菜单操作
      *
@@ -375,12 +375,11 @@ public class Login {
      *
      * */
     public  String downloader(String url,String cookie) throws Exception{
-
         Log.info("downloading..." + url);
         RequestConfig defaultRequestConfig = RequestConfig.custom()
-                .setSocketTimeout(5000)
-                .setConnectTimeout(5000)
-                .setConnectionRequestTimeout(5000)
+                .setSocketTimeout(15000)
+                .setConnectTimeout(15000)
+                .setConnectionRequestTimeout(15000)
                 .setStaleConnectionCheckEnabled(true)
                 .build();
         CloseableHttpClient closeableHttpClient = HttpClients.custom()
@@ -406,11 +405,15 @@ public class Login {
             }
         }catch (Exception e) {
             e.printStackTrace();
+            Log.info(DateUtil.today()+e.toString());
+            //Log.sendMail("xufh@ifeng.com","downloader-1(Exception)",e.toString());
         } finally {
             try {
                 closeableHttpClient.close();
             } catch (IOException e) {
                 e.printStackTrace();
+                Log.info(DateUtil.today()+e.toString());
+                Log.sendMail("xufh@ifeng.com","downloader-2(IOException)",e.toString());
             }
         }
         return null;
@@ -425,7 +428,6 @@ public class Login {
         credentials.add(mongoCredential);
         return new MongoCli(serverAddresses, credentials);
     }
-
     /**
      * 格式化cookie
      *
@@ -441,12 +443,5 @@ public class Login {
         cookie = cookie.substring(0,cookie.length() - 2);
         System.out.println(cookie);
         return cookie;
-    }
-
-
-    @Test
-    public  void testJava(){
-        JSONObject jsonObject=JSONObject.parseObject(null);
-        System.out.println(jsonObject);
     }
 }
