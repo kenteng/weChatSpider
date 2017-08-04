@@ -332,7 +332,7 @@ public class Login {
             System.out.println("title,url = " + newDriver.getTitle() + "," +  newDriver.getCurrentUrl());
         }
         Thread.sleep(1000);
-        element = newDriver.findElement(By.xpath("//*[@id=\'edui20_body\']/div"));
+        element = newDriver.findElement(By.xpath("//*[@id=\'edui21_body\']/div"));
         element.click();
         Thread.sleep(1000);
         //选择查找文章
