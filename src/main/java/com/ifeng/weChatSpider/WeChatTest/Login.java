@@ -227,11 +227,11 @@ public class Login {
     private void getErCode(int flag){
         try {
             webDriver.get(Login.HOST);
-            WebElement account = webDriver.findElement(By.xpath("//*[@id=\'account\']"));
+            WebElement account = webDriver.findElement(By.xpath("//*[@id=\"header\"]/div[2]/div/div/form/div[1]/div[1]/div/span/input"));
             account.sendKeys(Login.ACCOUNT);
-            WebElement pwd = webDriver.findElement(By.xpath("//*[@id=\'pwd\']"));
+            WebElement pwd = webDriver.findElement(By.xpath("//*[@id=\"header\"]/div[2]/div/div/form/div[1]/div[2]/div/span/input"));
             pwd.sendKeys(Login.PWD);
-            WebElement sub_btn = webDriver.findElement(By.xpath("//*[@id=\'loginBt\']"));
+            WebElement sub_btn = webDriver.findElement(By.xpath("//*[@id=\"header\"]/div[2]/div/div/form/div[4]/a"));
             sub_btn.click();
             //获取界面的二维码地址
             try{
@@ -385,8 +385,9 @@ public class Login {
         CloseableHttpClient closeableHttpClient = HttpClients.custom()
                 .setDefaultRequestConfig(defaultRequestConfig)
                 .build();
+        HttpGet httpGet = null;
         try {
-            HttpGet httpGet = new HttpGet(url);
+            httpGet = new HttpGet(url);
             httpGet.addHeader("accept", "application/json, text/javascript, */*; q=0.01");
             httpGet.addHeader("accept-encoding", "gzip, deflate, sdch, br");
             httpGet.addHeader("accept-language", "zh-CN,zh;q=0.8");
@@ -404,6 +405,7 @@ public class Login {
                 return EntityUtils.toString(httpEntity, "UTF-8");
             }
         }catch (Exception e) {
+            httpGet.releaseConnection();
             e.printStackTrace();
             Log.info(DateUtil.today()+e.toString());
             //Log.sendMail("xufh@ifeng.com","downloader-1(Exception)",e.toString());
