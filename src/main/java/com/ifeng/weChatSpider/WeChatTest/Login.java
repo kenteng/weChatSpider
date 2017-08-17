@@ -43,20 +43,20 @@ import java.util.*;
 public class Login {
 
     private static final String HOST = "https://mp.weixin.qq.com/";
-    private static String ACCOUNT = "869345286@qq.com";
-    private static String PWD = "suwenxing123";
+    private static String ACCOUNT = "suwenxing258@163.com";
+    private static String PWD = "869345286?";
     private static HashMap<String, String> user = new HashMap<String, String>(){
         {
-            put("869345286@qq.com", "suwenxing123");
             put("sun-ideas", "suwenxing123");
             put("suwenxing258@163.com", "869345286?");
+            put("869345286@qq.com", "suwenxing123");
         }
     };
     private static List<String> userName = new ArrayList<String>(){
         {
+            add("suwenxing258@163.com");
             add("869345286@qq.com");
             add("sun-ideas");
-            add("suwenxing258@163.com");
         }
     };
     //change记录账户变化次数
@@ -71,7 +71,7 @@ public class Login {
     static {
         // 设置 chrome 的路径（如果你安装chrome的时候用的默认安装路径，则可省略这步）
         System.setProperty("webdriver.chrome.driver", "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe");
-        System.getProperties().setProperty("webdriver.chrome.driver", "C:\\Users\\zhanggq\\chromedriver.exe");
+        System.getProperties().setProperty("webdriver.chrome.driver", "C:\\chromedriver.exe");
     }
 
     WebDriver webDriver = new ChromeDriver();
@@ -199,7 +199,7 @@ public class Login {
                     }
                 }
                 //每个公众号抓取后休息3秒
-                Thread.sleep(3000);
+                Thread.sleep(10000);
             } //for循环结束
             id = 0;
             System.out.println("--------第" + (++totalCount) + "轮结束---------" + DateUtil.now());
