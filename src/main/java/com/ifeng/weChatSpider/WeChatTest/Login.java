@@ -199,7 +199,7 @@ public class Login {
                     }
                 }
                 //每个公众号抓取后休息3秒
-                Thread.sleep(10000);
+                Thread.sleep(5000);
             } //for循环结束
             id = 0;
             System.out.println("--------第" + (++totalCount) + "轮结束---------" + DateUtil.now());
