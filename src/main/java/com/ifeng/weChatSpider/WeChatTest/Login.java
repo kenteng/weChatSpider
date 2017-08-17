@@ -43,9 +43,26 @@ import java.util.*;
 public class Login {
 
     private static final String HOST = "https://mp.weixin.qq.com/";
-    private static final String ACCOUNT = "869345286@qq.com";
-    private static final String PWD = "suwenxing123";
-    private static final String LOGIN_URL = "https://mp.weixin.qq.com/cgi-bin/bizlogin?action=validate&lang=zh_CN&account=" + ACCOUNT;
+    private static String ACCOUNT = "869345286@qq.com";
+    private static String PWD = "suwenxing123";
+    private static HashMap<String, String> user = new HashMap<String, String>(){
+        {
+            put("869345286@qq.com", "suwenxing123");
+            put("sun-ideas", "suwenxing123");
+            put("suwenxing258@163.com", "869345286?");
+        }
+    };
+    private static List<String> userName = new ArrayList<String>(){
+        {
+            add("869345286@qq.com");
+            add("sun-ideas");
+            add("suwenxing258@163.com");
+        }
+    };
+    //change记录账户变化次数
+    int change = 0;
+
+    private static String LOGIN_URL = "https://mp.weixin.qq.com/cgi-bin/bizlogin?action=validate&lang=zh_CN&account=" + ACCOUNT;
     private static long TIMETAP = System.currentTimeMillis();
     private static final String HOME_URL= "https://mp.weixin.qq.com/cgi-bin/home?t=home/index&lang=zh_CN&token=";
     private static final long FIVEDAYMIL = 5 * 24 * 3600 * 1000;
@@ -54,7 +71,7 @@ public class Login {
     static {
         // 设置 chrome 的路径（如果你安装chrome的时候用的默认安装路径，则可省略这步）
         System.setProperty("webdriver.chrome.driver", "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe");
-        System.getProperties().setProperty("webdriver.chrome.driver", "C:\\chromedriver.exe");
+        System.getProperties().setProperty("webdriver.chrome.driver", "C:\\Users\\zhanggq\\chromedriver.exe");
     }
 
     WebDriver webDriver = new ChromeDriver();
@@ -102,7 +119,7 @@ public class Login {
                 } catch (Exception e){
                     e.printStackTrace();
                     Log.error("" ,"----Download Exception:" + e +"-------");
-                    Log.sendMail("xufh@ifeng.com","Error","Error Occurred"+e);
+                    Log.sendMail("zhanggq@ifeng.com","Error","Error Occurred"+e);
                 }
                 if(reslut == null){
                     continue;
@@ -115,8 +132,21 @@ public class Login {
                     System.out.println("200003失效======================");
                     Log.info("200003失效===============");
                     //失效，重新登录
-                    cookie = analogLogin();   //获取cookie 和 token
-                    url = "https://mp.weixin.qq.com/cgi-bin/appmsg?token=" + token + "&lang=zh_CN&f=json&ajax=1&random=0.0932841953962531&action=list_ex&begin=0&count=5&query=&fakeid=%s&type=9";
+                    change++;
+                    try {
+                        ACCOUNT = userName.get(change%userName.size());
+                        PWD = user.get(ACCOUNT);
+                        int loc = LOGIN_URL.lastIndexOf("=");
+                        LOGIN_URL = LOGIN_URL.substring(0, loc+1) + ACCOUNT;
+                        webDriver.quit();
+                        newDriver.quit();
+                        webDriver = new ChromeDriver();
+                        cookie = analogLogin();   //获取cookie 和 token
+                        url = "https://mp.weixin.qq.com/cgi-bin/appmsg?token=" + token + "&lang=zh_CN&f=json&ajax=1&random=0.0932841953962531&action=list_ex&begin=0&count=5&query=&fakeid=%s&type=9";
+                        Thread.sleep(1000* 10);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
                     //continue;
                 }else{
                     try {
@@ -163,15 +193,37 @@ public class Login {
                         Where where = new Where("biz", weixinInfo.getBiz());
                         mongoCli.update(map, where);
                         System.out.println((++id) + "--------账号：" + weixinInfo.getAccount() + " 入库" + count + "篇文章，共抓取" + articleLists.size() + "篇---------" + DateUtil.now());
-//                    Thread.sleep(1000);
                     } catch (Exception e) {
                         e.printStackTrace();
                         System.out.println((++id) + "--------账号：" + weixinInfo.getAccount() + " 失败" + DateUtil.now());
                     }
                 }
+                //每个公众号抓取后休息3秒
+                Thread.sleep(3000);
             } //for循环结束
             id = 0;
             System.out.println("--------第" + (++totalCount) + "轮结束---------" + DateUtil.now());
+            //每次轮询完所有公众号后休息8秒
+            Thread.sleep(1000*8);
+
+            //每10个轮询切换账号
+            if (totalCount >= change * 10){
+                change++;
+                try {
+                    ACCOUNT = userName.get(change%userName.size());
+                    PWD = user.get(ACCOUNT);
+                    int loc = LOGIN_URL.lastIndexOf("=");
+                    LOGIN_URL = LOGIN_URL.substring(0, loc+1) + ACCOUNT;
+                    webDriver.quit();
+                    newDriver.quit();
+                    webDriver = new ChromeDriver();
+                    cookie = analogLogin();   //获取cookie 和 token
+                    url = "https://mp.weixin.qq.com/cgi-bin/appmsg?token=" + token + "&lang=zh_CN&f=json&ajax=1&random=0.0932841953962531&action=list_ex&begin=0&count=5&query=&fakeid=%s&type=9";
+                    Thread.sleep(1000* 20);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
         }//while结束
     }
     /**
@@ -258,14 +310,14 @@ public class Login {
             String sendUrl=getFormatUrl(imgUrl);
             System.out.println(sendUrl);
             if(flag == 0){
-                Log.sendMail("xufh@ifeng.com", "微信公众号二维码扫描" + DateUtil.formatDateTime(TIMETAP), sendUrl);  //发送邮件
+                Log.sendMail("zhanggq@ifeng.com", "微信公众号二维码扫描" + DateUtil.formatDateTime(TIMETAP), sendUrl);  //发送邮件
             }else{
-                Log.sendMail("xufh@ifeng.com", "微信公众号二维码过期扫描" + DateUtil.formatDateTime(TIMETAP), sendUrl);  //发送邮件
+                Log.sendMail("zhanggq@ifeng.com", "微信公众号二维码过期扫描" + DateUtil.formatDateTime(TIMETAP), sendUrl);  //发送邮件
             }
 
         }catch (Exception e){
             e.printStackTrace();
-            Log.sendMail("xufh@ifeng.com", "getErCode",e.toString());
+            Log.sendMail("zhanggq@ifeng.com", "getErCode",e.toString());
         }
     }
     /**
@@ -385,9 +437,8 @@ public class Login {
         CloseableHttpClient closeableHttpClient = HttpClients.custom()
                 .setDefaultRequestConfig(defaultRequestConfig)
                 .build();
-        HttpGet httpGet = null;
         try {
-            httpGet = new HttpGet(url);
+            HttpGet httpGet = new HttpGet(url);
             httpGet.addHeader("accept", "application/json, text/javascript, */*; q=0.01");
             httpGet.addHeader("accept-encoding", "gzip, deflate, sdch, br");
             httpGet.addHeader("accept-language", "zh-CN,zh;q=0.8");
@@ -405,17 +456,16 @@ public class Login {
                 return EntityUtils.toString(httpEntity, "UTF-8");
             }
         }catch (Exception e) {
-            httpGet.releaseConnection();
             e.printStackTrace();
             Log.info(DateUtil.today()+e.toString());
-            //Log.sendMail("xufh@ifeng.com","downloader-1(Exception)",e.toString());
+            //Log.sendMail("zhanggq@ifeng.com","downloader-1(Exception)",e.toString());
         } finally {
             try {
                 closeableHttpClient.close();
             } catch (IOException e) {
                 e.printStackTrace();
                 Log.info(DateUtil.today()+e.toString());
-                Log.sendMail("xufh@ifeng.com","downloader-2(IOException)",e.toString());
+                Log.sendMail("zhanggq@ifeng.com","downloader-2(IOException)",e.toString());
             }
         }
         return null;
